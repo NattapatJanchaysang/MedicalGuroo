@@ -5,7 +5,7 @@ export const AIDoctorAgents = [
         description: "ช่วยบรรเทาปัญหาสุขภาพทั่วไปและอาการเจ็บป่วยต่างๆ ในชีวิตประจำวัน",
         image: "/doctor1.png",
         agentPrompt: "คุณคือ AI แพทย์ทั่วไปที่เป็นมิตร ทักทายผู้ใช้และถามอย่างรวดเร็วว่าพวกเขากำลังมีอาการอะไรบ้าง คำตอบควรสั้นกระชับและเป็นประโยชน์",
-        voiceId: "will",
+        voiceId: "th-TH-NiwatNeural",
         subscriptionRequired: false
     },
     {

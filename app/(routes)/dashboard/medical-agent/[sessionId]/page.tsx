@@ -90,34 +90,52 @@ function MedicalVoiceAgent() {
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const StartCall = () => {
+const StartCall = () => {
+    // 1. เช็คก่อนว่ามีข้อมูล Voice ID ไหม
+    const voiceId = sessionDetail?.selectedDocter?.voiceId;
+
+    if (!voiceId) {
+      console.error("Voice ID is missing for this doctor:", sessionDetail?.selectedDocter);
+      alert("ไม่พบข้อมูล Voice ID ของแพทย์ กรุณาตรวจสอบข้อมูล");
+      return; 
+    }
+
     const vapi = new Vapi(process.env.NEXT_PUBLIC_VAPI_API_KEY!);
     setVapiInstance(vapi)
 
     const VapiAgentConfig = {
-      name:'AI Medical Doctor Voice Agent',
-      firstMessage:'สวัสดี, รบกวนช่วยบอกข้อมูลชื่อ นามสกุล และ อายุ ของท่านให้ฉันรู้หน่อยได้ไหม',
-      transcriber:{
-        provider:'google',
-        language:'th'
+      name: 'AI Medical Doctor Voice Agent',
+      firstMessage: 'สวัสดี, รบกวนช่วยบอกข้อมูลชื่อ นามสกุล และ อายุ ของท่านให้ฉันรู้หน่อยได้ไหม',
+      transcriber: {
+        provider: 'google',
+        language: 'Thai' // หรือ 'th' ตามที่ google stt รองรับ
       },
-      voice:{
-        provider:'azure',
-        voiceId:sessionDetail?.selectedDocter?.voiceId
+      voice: {
+        provider: 'azure',
+        // 2. ส่งค่า voiceId ที่เราเช็คแล้วว่าเป็น string แน่นอน
+        voiceId: voiceId 
       },
-      model:{
-        provider:'google',
-        model:'gemini-2.0-flash',
-        messages:[
+      model: {
+        provider: 'google',
+        model: 'gemini-2.0-flash',
+        messages: [
           {
-            role:'system',
-            content:sessionDetail?.selectedDocter?.agentPrompt
+            role: 'system',
+            content: sessionDetail?.selectedDocter?.agentPrompt || "You are a helpful medical assistant." // ใส่ fallback กัน prompt ว่าง
           }
         ]
       }
     }
     
-    vapi.start(process.env.NEXT_PUBLIC_VAPI_VOICE_ASSISTANT_ID!);
+    // Debug ดู config ก่อนส่ง (กด F12 ดูใน Console)
+    console.log("Starting Vapi with Config:", VapiAgentConfig);
+
+    try {
+        //@ts-ignore
+        vapi.start(VapiAgentConfig);
+    } catch (err) {
+        console.error("Vapi Start Error:", err);
+    }
 
     // Event Listeners
     vapi.on('call-start', () => {
@@ -159,7 +177,7 @@ function MedicalVoiceAgent() {
     
     // Error handling
     vapi.on('error', (e:any) => {
-        console.error(e);
+        console.error("Vapi Runtime Error:", e); // ปรับ log ให้ชัดขึ้น
         setCallStarted(false);
     })
   }
