@@ -4,7 +4,7 @@ import { useParams } from 'next/navigation'
 import React, { useEffect, useState, useRef } from 'react'
 // ตรวจสอบ path ให้ถูกต้องตามโครงสร้างโปรเจคของคุณ
 import { docterAgent } from '../../_components/DocterAgentCard' 
-import { Circle, PhoneCall, PhoneOff } from 'lucide-react'
+import { Circle, Loader, PhoneCall, PhoneOff } from 'lucide-react'
 import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 import Vapi from '@vapi-ai/web';
@@ -33,6 +33,7 @@ function MedicalVoiceAgent() {
   const [liveTranscript, setLiveTranscript] = useState<string>("")
   const [messages, setMessages] = useState<MessageItem[]>([])
   const [callDuration, setCallDuration] = useState(0);
+  const [loading,setLoading] = useState(false)
   
   // Ref สำหรับเลื่อนหน้าจอแชท
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -91,6 +92,7 @@ function MedicalVoiceAgent() {
   };
 
 const StartCall = () => {
+  setLoading(true)
     // 1. เช็คก่อนว่ามีข้อมูล Voice ID ไหม
     const voiceId = sessionDetail?.selectedDocter?.voiceId;
 
@@ -180,16 +182,30 @@ const StartCall = () => {
         console.error("Vapi Runtime Error:", e); // ปรับ log ให้ชัดขึ้น
         setCallStarted(false);
     })
+
+    setLoading(false)
   }
 
-  const endCall = () => {
+  const endCall = async () => {
+    setLoading(true)
     if (!vapiInstance) return;
     vapiInstance.stop();
     setCallStarted(false);
-    // ไม่ต้อง setVapiInstance(null) ทันทีก็ได้ เพื่อให้ cleanup effect ทำงานได้ถูกต้องหากจำเป็น
+    const result = await GenerateReport()
+
+    setLoading(false)
   };
 
-  // --- Render ---
+  const GenerateReport = async () => {
+    const result = await axios.post('/api/medical-report',{
+      messages:messages,
+      sessionDetail:sessionDetail,
+      sessionId:sessionId
+    })
+
+    console.log(result.data);
+    return result.data;
+  }
 
   return (
     <div className='p-4 border rounded-3xl bg-secondary h-full min-h-[500px] flex flex-col'>
@@ -257,12 +273,12 @@ const StartCall = () => {
           {/* Controls */}
           <div className='mt-6 w-full flex justify-center'>
             {!callStarted ? (
-              <Button className='w-full max-w-xs h-12 text-lg shadow-lg' onClick={StartCall}>
-                <PhoneCall className='mr-2 w-5 h-5' /> Start Consultation
+              <Button className='w-full max-w-xs h-12 text-lg shadow-lg' onClick={StartCall} disabled={loading}>
+                {loading ? <Loader className='animate-spin'/> : <PhoneCall className='mr-2 w-5 h-5' />} Start Consultation
               </Button>
             ) : (
-              <Button variant={'destructive'} className='w-full max-w-xs h-12 text-lg shadow-lg' onClick={endCall}>
-                <PhoneOff className='mr-2 w-5 h-5' /> End Call
+              <Button variant={'destructive'} className='w-full max-w-xs h-12 text-lg shadow-lg' onClick={endCall} disabled={loading}>
+                {loading ? <Loader className='aniamte-spin'/> :<PhoneOff className='mr-2 w-5 h-5' />} End Call
               </Button>
             )}
           </div>
